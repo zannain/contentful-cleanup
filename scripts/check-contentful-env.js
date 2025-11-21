@@ -51,25 +51,24 @@ async function checkContentfulEnvironment() {
     // Get all environments in the space
     const environments = await space.getEnvironments();
 
-    // Fetch space membership to get user details
-    console.log('🔄 Fetching user information...');
+    // Fetch current user information
+    // Note: Contentful API only allows fetching the authenticated user's profile
+    // Other users' profiles require the 'user_management_api' feature (enterprise only)
+    console.log('🔄 Fetching current user information...');
     let usersMap = {};
     try {
-      const spaceMemberships = await space.getSpaceMemberships();
-      spaceMemberships.items.forEach(membership => {
-        // User attribute moved to sys.user (handle both old and new API)
-        const user = membership.sys?.user || membership.user;
-        if (user) {
-          const userId = user.sys.id;
-          usersMap[userId] = {
-            firstName: user.firstName || '',
-            lastName: user.lastName || '',
-            email: user.email || '',
-            avatarUrl: user.avatarUrl || ''
-          };
-        }
-      });
-      console.log(`✅ Loaded ${Object.keys(usersMap).length} user(s)`);
+      const currentUser = await client.getCurrentUser();
+      if (currentUser && currentUser.sys && currentUser.sys.id) {
+        const userId = currentUser.sys.id;
+        usersMap[userId] = {
+          firstName: currentUser.firstName || '',
+          lastName: currentUser.lastName || '',
+          email: currentUser.email || '',
+          avatarUrl: currentUser.avatarUrl || ''
+        };
+        console.log(`✅ Loaded current user: ${currentUser.firstName} ${currentUser.lastName}`);
+        console.log('   (Other users will show as IDs only)');
+      }
       console.log('');
     } catch (userError) {
       console.log('⚠️  Could not fetch user details (will show user IDs only)');
