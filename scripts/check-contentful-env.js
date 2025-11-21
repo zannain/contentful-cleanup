@@ -28,7 +28,13 @@ async function checkContentfulEnvironment() {
     process.exit(1);
   }
 
+  // Extract the name after the slash (e.g., "feat/test-env-deletion" → "test-env-deletion")
+  const searchName = branchName.includes('/')
+    ? branchName.split('/').slice(1).join('/')
+    : branchName;
+
   console.log(`🔍 Checking for Contentful environment matching branch: "${branchName}"`);
+  console.log(`🔎 Search term (extracted): "${searchName}"`);
   console.log(`📦 Space ID: ${spaceId}`);
   console.log('');
 
@@ -46,43 +52,62 @@ async function checkContentfulEnvironment() {
     // Get all environments in the space
     const environments = await space.getEnvironments();
 
-    // Look for an environment matching the branch name
-    const matchingEnv = environments.items.find(
-      env => env.name === branchName || env.sys.id === branchName
+    // Find exact matches first
+    const exactMatches = environments.items.filter(
+      env => env.name === searchName || env.sys.id === searchName
     );
 
-    if (matchingEnv) {
-      console.log('✅ ENVIRONMENT FOUND!');
-      console.log('═══════════════════════════════════════');
-      console.log(`Environment ID: ${matchingEnv.sys.id}`);
-      console.log(`Environment Name: ${matchingEnv.name}`);
+    // Find partial matches (environments that contain the search name)
+    const partialMatches = environments.items.filter(env => {
+      const isExactMatch = env.name === searchName || env.sys.id === searchName;
+      const containsInId = env.sys.id.includes(searchName);
+      const containsInName = env.name.includes(searchName);
+      return !isExactMatch && (containsInId || containsInName);
+    });
+
+    // Combine all matches
+    const allMatches = [...exactMatches, ...partialMatches];
+
+    if (allMatches.length > 0) {
+      console.log(`✅ FOUND ${allMatches.length} MATCHING ENVIRONMENT(S)!`);
       console.log('');
 
-      // Display creator information if available
-      if (matchingEnv.sys.createdBy) {
-        console.log('👤 Creator Information:');
-        console.log(`   Created by: ${matchingEnv.sys.createdBy.sys.id}`);
-        console.log(`   Type: ${matchingEnv.sys.createdBy.sys.linkType}`);
-      }
+      allMatches.forEach((env, index) => {
+        const matchType = exactMatches.includes(env) ? '(Exact Match)' : '(Partial Match)';
 
-      // Display creation and update timestamps
-      if (matchingEnv.sys.createdAt) {
-        console.log(`   Created at: ${new Date(matchingEnv.sys.createdAt).toLocaleString()}`);
-      }
+        console.log('═══════════════════════════════════════');
+        console.log(`Environment ${index + 1} ${matchType}`);
+        console.log('═══════════════════════════════════════');
+        console.log(`Environment ID: ${env.sys.id}`);
+        console.log(`Environment Name: ${env.name}`);
+        console.log('');
 
-      if (matchingEnv.sys.updatedAt) {
-        console.log(`   Updated at: ${new Date(matchingEnv.sys.updatedAt).toLocaleString()}`);
-      }
+        // Display creator information if available
+        if (env.sys.createdBy) {
+          console.log('👤 Creator Information:');
+          console.log(`   Created by: ${env.sys.createdBy.sys.id}`);
+          console.log(`   Type: ${env.sys.createdBy.sys.linkType}`);
+        }
 
-      if (matchingEnv.sys.updatedBy) {
-        console.log(`   Updated by: ${matchingEnv.sys.updatedBy.sys.id}`);
-      }
+        // Display creation and update timestamps
+        if (env.sys.createdAt) {
+          console.log(`   Created at: ${new Date(env.sys.createdAt).toLocaleString()}`);
+        }
 
-      console.log('═══════════════════════════════════════');
-      console.log('');
+        if (env.sys.updatedAt) {
+          console.log(`   Updated at: ${new Date(env.sys.updatedAt).toLocaleString()}`);
+        }
+
+        if (env.sys.updatedBy) {
+          console.log(`   Updated by: ${env.sys.updatedBy.sys.id}`);
+        }
+
+        console.log('═══════════════════════════════════════');
+        console.log('');
+      });
     } else {
       console.log('ℹ️  No matching environment found');
-      console.log(`   Branch name "${branchName}" does not match any environment in the space.`);
+      console.log(`   Search term "${searchName}" does not match any environment in the space.`);
       console.log('');
       console.log('📋 Available environments:');
       environments.items.forEach(env => {
