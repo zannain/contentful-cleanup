@@ -12,7 +12,6 @@ async function checkContentfulEnvironment() {
   const accessToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
   const branchName = process.env.BRANCH_NAME;
 
-  // Validate required environment variables
   if (!spaceId) {
     console.error('❌ Error: CONTENTFUL_SPACE_ID is not set');
     process.exit(1);
@@ -52,6 +51,40 @@ async function checkContentfulEnvironment() {
     // Get all environments in the space
     const environments = await space.getEnvironments();
 
+    // Fetch space membership to get user details
+    console.log('🔄 Fetching user information...');
+    let usersMap = {};
+    try {
+      const spaceMemberships = await space.getSpaceMemberships();
+      spaceMemberships.items.forEach(membership => {
+        if (membership.user) {
+          const userId = membership.user.sys.id;
+          usersMap[userId] = {
+            firstName: membership.user.firstName || '',
+            lastName: membership.user.lastName || '',
+            email: membership.user.email || '',
+            avatarUrl: membership.user.avatarUrl || ''
+          };
+        }
+      });
+      console.log(`✅ Loaded ${Object.keys(usersMap).length} user(s)`);
+      console.log('');
+    } catch (userError) {
+      console.log('⚠️  Could not fetch user details (will show user IDs only)');
+      console.log('');
+    }
+
+    // Helper function to format user information
+    const formatUserInfo = (userId) => {
+      const user = usersMap[userId];
+      if (user) {
+        const fullName = `${user.firstName} ${user.lastName}`.trim();
+        const nameAndEmail = fullName ? `${fullName} (${user.email})` : user.email;
+        return nameAndEmail || userId;
+      }
+      return userId;
+    };
+
     // Find exact matches first
     const exactMatches = environments.items.filter(
       env => env.name === searchName || env.sys.id === searchName
@@ -65,11 +98,10 @@ async function checkContentfulEnvironment() {
       return !isExactMatch && (containsInId || containsInName);
     });
 
-    // Combine all matches
     const allMatches = [...exactMatches, ...partialMatches];
 
     if (allMatches.length > 0) {
-      console.log(`✅ FOUND ${allMatches.length} MATCHING ENVIRONMENT(S)!`);
+      console.log(`✅ FOUND ${allMatches.length} MATCHING ENVIRONMENT(S)`);
       console.log('');
 
       allMatches.forEach((env, index) => {
@@ -85,8 +117,7 @@ async function checkContentfulEnvironment() {
         // Display creator information if available
         if (env.sys.createdBy) {
           console.log('👤 Creator Information:');
-          console.log(`   Created by: ${env.sys.createdBy.sys.id}`);
-          console.log(`   Type: ${env.sys.createdBy.sys.linkType}`);
+          console.log(`   Created by: ${formatUserInfo(env.sys.createdBy.sys.id)}`);
         }
 
         // Display creation and update timestamps
@@ -99,7 +130,7 @@ async function checkContentfulEnvironment() {
         }
 
         if (env.sys.updatedBy) {
-          console.log(`   Updated by: ${env.sys.updatedBy.sys.id}`);
+          console.log(`   Updated by: ${formatUserInfo(env.sys.updatedBy.sys.id)}`);
         }
 
         console.log('═══════════════════════════════════════');
