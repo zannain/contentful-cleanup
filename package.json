@@ -1,0 +1,20 @@
+{
+  "name": "contentful-cleanup",
+  "version": "1.0.0",
+  "description": "POC for automated Contentful environment checking via GitHub Actions",
+  "main": "scripts/check-contentful-env.js",
+  "scripts": {
+    "check-env": "node scripts/check-contentful-env.js"
+  },
+  "keywords": [
+    "contentful",
+    "github-actions",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "contentful-management": "^11.31.4"
+  }
+}
+
