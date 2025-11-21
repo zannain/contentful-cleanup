@@ -2,8 +2,9 @@
 
 This repository contains a proof-of-concept (POC) GitHub Action that automatically checks for Contentful environments matching the branch name when a pull request is merged.
 
-## Overview
+## Features
 
+### 1. GitHub Action - Environment Check
 When a pull request is merged, this workflow:
 1. Extracts the branch name from the merged PR
 2. Queries your Contentful space for environments
@@ -13,6 +14,19 @@ When a pull request is merged, this workflow:
    - Creator information (user ID)
    - Creation and update timestamps
    - Who last updated the environment
+
+### 2. Product Display Page
+A simple, beautiful web interface (`index.html`) to view all products from your Contentful space:
+- Displays product name, description, price, category, and images
+- Uses the Contentful Delivery API
+- No build process required - just open in a browser
+- Saves your configuration in localStorage for convenience
+
+**To use the product display page:**
+1. Open `index.html` in your web browser
+2. Enter your Contentful Space ID
+3. Enter your Contentful Delivery API token (from Settings → API keys → Content delivery / preview tokens)
+4. Click "Load Products" to fetch and display all products
 
 ## Setup Instructions
 
