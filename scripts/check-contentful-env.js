@@ -57,13 +57,15 @@ async function checkContentfulEnvironment() {
     try {
       const spaceMemberships = await space.getSpaceMemberships();
       spaceMemberships.items.forEach(membership => {
-        if (membership.user) {
-          const userId = membership.user.sys.id;
+        // User attribute moved to sys.user (handle both old and new API)
+        const user = membership.sys?.user || membership.user;
+        if (user) {
+          const userId = user.sys.id;
           usersMap[userId] = {
-            firstName: membership.user.firstName || '',
-            lastName: membership.user.lastName || '',
-            email: membership.user.email || '',
-            avatarUrl: membership.user.avatarUrl || ''
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            email: user.email || '',
+            avatarUrl: user.avatarUrl || ''
           };
         }
       });
