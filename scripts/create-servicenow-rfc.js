@@ -21,13 +21,30 @@ function validateEnvironmentVariables() {
 }
 
 function extractEventDetails(payload) {
-  const sys = payload.sys || {};
-  const contentType = sys.contentType?.sys?.id || 'unknown';
-  const entryId = sys.id || 'unknown';
-  const environment = sys.environment?.sys?.id || 'unknown';
-  const spaceId = sys.space?.sys?.id || 'unknown';
-  const updatedBy = sys.updatedBy?.sys?.id || sys.createdBy?.sys?.id || 'unknown';
-  const updatedAt = sys.updatedAt || new Date().toISOString();
+  // Handle both formats:
+  // 1. Flat structure from Contentful webhook template (GitHub client_payload)
+  // 2. Nested structure for local testing
+
+  let contentType, entryId, environment, spaceId, updatedBy, updatedAt;
+
+  if (payload.contentType && payload.entryId) {
+    // Flat structure from webhook
+    contentType = payload.contentType || 'unknown';
+    entryId = payload.entryId || 'unknown';
+    environment = payload.environment || 'unknown';
+    spaceId = payload.space || 'unknown';
+    updatedBy = payload.updatedBy || 'unknown';
+    updatedAt = payload.updatedAt || new Date().toISOString();
+  } else {
+    // Nested structure for local testing
+    const sys = payload.sys || {};
+    contentType = sys.contentType?.sys?.id || 'unknown';
+    entryId = sys.id || 'unknown';
+    environment = sys.environment?.sys?.id || 'unknown';
+    spaceId = sys.space?.sys?.id || 'unknown';
+    updatedBy = sys.updatedBy?.sys?.id || sys.createdBy?.sys?.id || 'unknown';
+    updatedAt = sys.updatedAt || new Date().toISOString();
+  }
 
   return { contentType, entryId, environment, spaceId, updatedBy, updatedAt };
 }
@@ -100,6 +117,7 @@ function createServiceNowRfc() {
   const { contentfulPayload } = validateEnvironmentVariables();
 
   console.log('Parsing Contentful webhook payload...');
+  console.log('Raw payload:', JSON.stringify(contentfulPayload, null, 2));
   const details = extractEventDetails(contentfulPayload);
 
   console.log('Building ServiceNow RFC...');
