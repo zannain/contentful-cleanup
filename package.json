@@ -4,7 +4,9 @@
   "description": "POC for automated Contentful environment checking via GitHub Actions",
   "main": "scripts/check-contentful-env.js",
   "scripts": {
-    "check-env": "node scripts/check-contentful-env.js"
+    "check-env": "node scripts/check-contentful-env.js",
+    "send-slack": "node scripts/send-slack-notification.js",
+    "create-rfc": "node scripts/create-servicenow-rfc.js"
   },
   "keywords": [
     "contentful",
@@ -14,6 +16,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.7.2",
     "contentful-management": "^11.31.4"
   }
 }

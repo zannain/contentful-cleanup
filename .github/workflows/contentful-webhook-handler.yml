@@ -1,0 +1,32 @@
+name: Contentful Webhook Handler
+
+on:
+  repository_dispatch:
+    types: [contentful-entry-publish]
+
+jobs:
+  handle-webhook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      # - name: Send Slack Notification
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #     CONTENTFUL_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+      #   run: node scripts/send-slack-notification.js
+
+      - name: Create ServiceNow RFC (Mock)
+        env:
+          CONTENTFUL_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+        run: node scripts/create-servicenow-rfc.js
