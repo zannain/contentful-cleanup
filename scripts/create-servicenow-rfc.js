@@ -2,9 +2,15 @@
 
 function validateEnvironmentVariables() {
   const contentfulPayloadRaw = process.env.CONTENTFUL_PAYLOAD;
+  const managementToken = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
 
   if (!contentfulPayloadRaw) {
     console.error('Error: CONTENTFUL_PAYLOAD is not set');
+    process.exit(1);
+  }
+
+  if (!managementToken) {
+    console.error('Error: CONTENTFUL_MANAGEMENT_TOKEN is not set');
     process.exit(1);
   }
 
@@ -17,7 +23,7 @@ function validateEnvironmentVariables() {
     process.exit(1);
   }
 
-  return { contentfulPayload };
+  return { contentfulPayload, managementToken };
 }
 
 function extractEventDetails(payload) {
@@ -36,6 +42,33 @@ function extractEventDetails(payload) {
   return { contentType, entryId, environment, spaceId, updatedBy, updatedAt };
 }
 
+async function fetchUserName(spaceId, userId, managementToken) {
+  const url = `https://api.contentful.com/spaces/${spaceId}/users/${userId}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${managementToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      console.warn(`Warning: Could not fetch user details (HTTP ${response.status})`);
+      return null;
+    }
+
+    const user = await response.json();
+    const firstName = user.firstName || '';
+    const lastName = user.lastName || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    return fullName || null;
+  } catch (error) {
+    console.warn(`Warning: Failed to fetch user details: ${error.message}`);
+    return null;
+  }
+}
+
 function buildRfcObject(details) {
   return {
     short_description: `Contentful content change: ${details.contentType} (${details.entryId})`,
@@ -46,7 +79,7 @@ function buildRfcObject(details) {
       `Entry ID:     ${details.entryId}`,
       `Environment:  ${details.environment}`,
       `Space ID:     ${details.spaceId}`,
-      `Changed By:   ${details.updatedBy}`,
+      `Changed By:   ${details.updatedByName ? `${details.updatedByName} (${details.updatedBy})` : details.updatedBy}`,
       `Timestamp:    ${details.updatedAt}`,
       ``,
       `Contentful Link: https://app.contentful.com/spaces/${details.spaceId}/environments/${details.environment}/entries/${details.entryId}`,
@@ -73,11 +106,22 @@ function displayRfc(rfc) {
   }
 }
 
-function createServiceNowRfc() {
-  const { contentfulPayload } = validateEnvironmentVariables();
+async function createServiceNowRfc() {
+  const { contentfulPayload, managementToken } = validateEnvironmentVariables();
 
   console.log('Raw payload:', JSON.stringify(contentfulPayload, null, 2));
   const details = extractEventDetails(contentfulPayload);
+
+  if (details.updatedBy && details.updatedBy !== 'unknown' && details.spaceId && details.spaceId !== 'unknown') {
+    console.log(`\nLooking up user details for: ${details.updatedBy}`);
+    const userName = await fetchUserName(details.spaceId, details.updatedBy, managementToken);
+    if (userName) {
+      details.updatedByName = userName;
+      console.log(`Resolved user: ${userName}\n`);
+    } else {
+      console.log('Could not resolve user name, using ID only.\n');
+    }
+  }
 
   const rfc = buildRfcObject(details);
   displayRfc(rfc);
@@ -99,4 +143,7 @@ function createServiceNowRfc() {
 
 }
 
-createServiceNowRfc();
+createServiceNowRfc().catch((error) => {
+  console.error(`Unexpected error: ${error.message}`);
+  process.exit(1);
+});
