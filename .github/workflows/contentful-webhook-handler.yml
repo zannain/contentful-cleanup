@@ -29,4 +29,5 @@ jobs:
       - name: Create ServiceNow RFC (Mock)
         env:
           CONTENTFUL_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+          CONTENTFUL_MANAGEMENT_TOKEN: ${{ secrets.CONTENTFUL_MANAGEMENT_TOKEN }}
         run: node scripts/create-servicenow-rfc.js
