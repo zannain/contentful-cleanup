@@ -58,6 +58,7 @@ async function fetchUserName(spaceId, userId, managementToken) {
     }
 
     const user = await response.json();
+    console.log('User:', user);
     const firstName = user.firstName || '';
     const lastName = user.lastName || '';
     const fullName = `${firstName} ${lastName}`.trim();
