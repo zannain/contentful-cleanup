@@ -28,18 +28,19 @@ function validateEnvironmentVariables() {
 
 function extractEventDetails(payload) {
 
-  let contentType, entryId, environment, spaceId, updatedBy, updatedAt;
+  let contentType, entryId, environment, spaceId, userId, updatedBy, updatedAt;
 
   if (payload.contentType && payload.entryId) {
     contentType = payload.contentType || 'unknown';
     entryId = payload.entryId || 'unknown';
     environment = payload.environment || 'unknown';
     spaceId = payload.space || 'unknown';
+    userId = payload.user || null;
     updatedBy = payload.updatedBy || 'unknown';
     updatedAt = payload.updatedAt || new Date().toISOString();
   }
 
-  return { contentType, entryId, environment, spaceId, updatedBy, updatedAt };
+  return { contentType, entryId, environment, spaceId, userId, updatedBy, updatedAt };
 }
 
 async function fetchUserName(spaceId, userId, managementToken) {
@@ -113,9 +114,10 @@ async function createServiceNowRfc() {
   console.log('Raw payload:', JSON.stringify(contentfulPayload, null, 2));
   const details = extractEventDetails(contentfulPayload);
 
-  if (details.updatedBy && details.updatedBy !== 'unknown' && details.spaceId && details.spaceId !== 'unknown') {
-    console.log(`\nLooking up user details for: ${details.updatedBy}`);
-    const userName = await fetchUserName(details.spaceId, details.updatedBy, managementToken);
+  const lookupId = details.userId || details.updatedBy;
+  if (lookupId && lookupId !== 'unknown' && details.spaceId && details.spaceId !== 'unknown') {
+    console.log(`\nLooking up user details for: ${lookupId}`);
+    const userName = await fetchUserName(details.spaceId, lookupId, managementToken);
     if (userName) {
       details.updatedByName = userName;
       console.log(`Resolved user: ${userName}\n`);
